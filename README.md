@@ -93,7 +93,8 @@ MIT
 
 ## Website
 
-Part of the [**evannsmc** open-source portfolio](https://www.evannsmc.com/projects) — [project page →](https://www.evannsmc.com/projects/nr-flow)
+- [evannsmc.com](https://www.evannsmc.com)
+- [Project page](https://www.evannsmc.com/projects/nr-flow)
 
 # Papers and their repositories:
 American Control Conference 2024 - [see paper here](https://coogan.ece.gatech.edu/papers/pdf/cuadrado2024tracking.pdf)  
