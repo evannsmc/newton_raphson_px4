@@ -93,7 +93,8 @@ MIT
 
 ## Website
 
-- [evannsmc.com](https://www.evannsmc.com)
+This project is part of the [evannsmc open-source portfolio](https://www.evannsmc.com/projects).
+
 - [Project page](https://www.evannsmc.com/projects/nr-flow)
 
 # Papers and their repositories:
