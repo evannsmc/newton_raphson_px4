@@ -204,47 +204,60 @@ class OffboardControl(Node):
             if self.first_log:
                 self.first_log = False
                 self.get_logger().info("Starting data logging.")
+                # Metadata (constant, appended once)
                 self.platform_logtype = LogType("platform", 0)
                 self.trajectory_logtype = LogType("trajectory", 1)
                 self.traj_double_logtype = LogType("traj_double", 2)
                 self.traj_short_logtype = LogType("traj_short", 3)
                 self.traj_spin_logtype = LogType("traj_spin", 4)
-                self.lookahead_time = LogType("lookahead_time", 5)
-
+                self.lookahead_time_logtype = LogType("lookahead_time", 5)
+                self.controller_logtype = LogType("controller", 6)
 
                 self.platform_logtype.append(self.platform_type.value.upper())
                 self.trajectory_logtype.append(self.ref_type.name)
                 self.traj_double_logtype.append("DblSpd" if self.double_speed else "NormSpd")
                 self.traj_short_logtype.append("Short" if self.short else "Not Short")
                 self.traj_spin_logtype.append("Spin" if self.spin else "NoSpin")
-                self.lookahead_time.append(self.T_LOOKAHEAD)
+                self.lookahead_time_logtype.append(self.T_LOOKAHEAD)
+                self.controller_logtype.append("nr")
 
-            # Time logs
-            self.program_time_logtype = LogType("time", 6)
-            self.trajectory_time_logtype = LogType("traj_time", 7)
-            self.reference_time_logtype = LogType("ref_time", 8)
-            self.comptime_logtype = LogType("comptime", 9)
+            # Timing
+            self.program_time_logtype = LogType("time", 10)
+            self.trajectory_time_logtype = LogType("traj_time", 11)
+            self.reference_time_logtype = LogType("ref_time", 12)
+            self.comp_time_logtype = LogType("comp_time", 13)
 
+            # State
+            self.x_logtype = LogType("x", 20)
+            self.y_logtype = LogType("y", 21)
+            self.z_logtype = LogType("z", 22)
+            self.yaw_logtype = LogType("yaw", 23)
+            self.vx_logtype = LogType("vx", 24)
+            self.vy_logtype = LogType("vy", 25)
+            self.vz_logtype = LogType("vz", 26)
 
-            # State logs
-            self.x_logtype = LogType("x", 10)
-            self.y_logtype = LogType("y", 11)
-            self.z_logtype = LogType("z", 12)
-            self.yaw_logtype = LogType("yaw", 13)
+            # Reference
+            self.xref_logtype = LogType("x_ref", 30)
+            self.yref_logtype = LogType("y_ref", 31)
+            self.zref_logtype = LogType("z_ref", 32)
+            self.yawref_logtype = LogType("yaw_ref", 33)
+            self.vxref_logtype = LogType("vx_ref", 34)
+            self.vyref_logtype = LogType("vy_ref", 35)
+            self.vzref_logtype = LogType("vz_ref", 36)
 
-            # Reference logs
-            self.xref_logtype = LogType("x_ref", 20)
-            self.yref_logtype = LogType("y_ref", 21)
-            self.zref_logtype = LogType("z_ref", 22)
-            self.yawref_logtype = LogType("yaw_ref", 22)
+            # Body rates (actual)
+            self.p_logtype = LogType("p", 40)
+            self.q_logtype = LogType("q", 41)
+            self.r_logtype = LogType("r", 42)
 
-            # Control input logs (normalized)
-            self.throttle_input_logtype = LogType("throttle_input", 26)
-            self.p_input_logtype = LogType("p_input", 27)
-            self.q_input_logtype = LogType("q_input", 28)
-            self.r_input_logtype = LogType("r_input", 29)
+            # Control inputs (normalized)
+            self.throttle_input_logtype = LogType("throttle_input", 50)
+            self.p_input_logtype = LogType("p_input", 51)
+            self.q_input_logtype = LogType("q_input", 52)
+            self.r_input_logtype = LogType("r_input", 53)
 
-            self.cbf_logtype = VectorLogType("cbf_term", 30, ['thrust_cbf', 'roll_cbf', 'pitch_cbf', 'yaw_cbf'])
+            # CBF: subnames produce columns cbf_v_throttle, cbf_v_p, cbf_v_q, cbf_v_r
+            self.cbf_logtype = VectorLogType("cbf", 60, ['v_throttle', 'v_p', 'v_q', 'v_r'])
 
 
 
@@ -498,27 +511,42 @@ class OffboardControl(Node):
         if self.flight_phase is not FlightPhase.CUSTOM:
             return
 
+        # Timing
         self.program_time_logtype.append(self.program_time)
         self.trajectory_time_logtype.append(self.trajectory_time)
         self.reference_time_logtype.append(self.reference_time)
-        self.comptime_logtype.append(self.compute_time)
+        self.comp_time_logtype.append(self.compute_time)
 
+        # State
         self.x_logtype.append(self.x)
         self.y_logtype.append(self.y)
         self.z_logtype.append(self.z)
         self.yaw_logtype.append(self.yaw)
+        self.vx_logtype.append(self.vx)
+        self.vy_logtype.append(self.vy)
+        self.vz_logtype.append(self.vz)
 
+        # Reference
         self.xref_logtype.append(self.ref[0])
         self.yref_logtype.append(self.ref[1])
         self.zref_logtype.append(self.ref[2])
         self.yawref_logtype.append(self.ref[3])
+        self.vxref_logtype.append(self.ref_dot[0])
+        self.vyref_logtype.append(self.ref_dot[1])
+        self.vzref_logtype.append(self.ref_dot[2])
 
+        # Body rates (actual)
+        self.p_logtype.append(self.wx)
+        self.q_logtype.append(self.wy)
+        self.r_logtype.append(self.wz)
+
+        # Control inputs
         self.throttle_input_logtype.append(self.normalized_input[0])
         self.p_input_logtype.append(self.normalized_input[1])
         self.q_input_logtype.append(self.normalized_input[2])
         self.r_input_logtype.append(self.normalized_input[3])
 
-
+        # CBF
         self.cbf_logtype.append(*self.cbf_term)
 
 
