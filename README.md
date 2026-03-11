@@ -39,21 +39,39 @@ ros2 run newton_raphson_px4 run_node --platform hw --trajectory helix --log
 
 # Hover mode 3, double speed, with yaw spin
 ros2 run newton_raphson_px4 run_node --platform sim --trajectory hover --hover-mode 3 --double-speed --spin
+
+# f8_contraction with feedforward, logged with _ff marker in filename
+ros2 run newton_raphson_px4 run_node --platform sim --trajectory f8_contraction --ff --log
+# -> logs to: sim_nr_std_f8_contraction_ff_1x.csv
 ```
 
 ### CLI Options
 
-| Flag                                            | Description                       |
-| ----------------------------------------------- | --------------------------------- |
-| `--platform {sim,hw}`                           | Target platform (required)        |
-| `--trajectory {hover,yaw_only,circle_horz,...}` | Trajectory type (required)        |
-| `--hover-mode {1..8}`                           | Hover sub-mode (1-4 for hardware) |
-| `--log`                                         | Enable CSV data logging           |
-| `--log-file NAME`                               | Custom log filename               |
-| `--double-speed`                                | 2x trajectory speed               |
-| `--short`                                       | Short variant (fig8_vert)         |
-| `--spin`                                        | Enable yaw rotation               |
-| `--flight-period SEC`                           | Custom flight duration            |
+| Flag                                            | Description                                                    |
+| ----------------------------------------------- | -------------------------------------------------------------- |
+| `--platform {sim,hw}`                           | Target platform (required)                                     |
+| `--trajectory {hover,yaw_only,circle_horz,...}` | Trajectory type (required)                                     |
+| `--hover-mode {1..8}`                           | Hover sub-mode (1-4 for hardware)                              |
+| `--log`                                         | Enable CSV data logging                                        |
+| `--log-file NAME`                               | Custom log filename                                            |
+| `--double-speed`                                | 2x trajectory speed                                            |
+| `--short`                                       | Short variant (fig8_vert)                                      |
+| `--spin`                                        | Enable yaw rotation                                            |
+| `--flight-period SEC`                           | Custom flight duration                                         |
+| `--ff`                                          | Mark log filename with `_ff` (only valid with `f8_contraction`) |
+
+## Feedforward for `f8_contraction`
+
+When the `f8_contraction` trajectory is selected, the node computes a differential-flatness feedforward at each control step using the same approach as the contraction controller (`flat_to_x_u` from `quad_trajectories`).
+
+**How it works:**
+
+1. The flat output `[px, py, pz, psi](t)` is differentiated twice via `jax.jacfwd` to recover velocity and acceleration.
+2. From acceleration, the feedforward specific thrust `f` and Euler angles `[phi, th, psi]` are computed analytically (flat-output inversion).
+3. A third differentiation gives `u_ff = [df, dphi, dth, dpsi]` — the rates of thrust, roll, pitch, and yaw.
+4. The angular rate feedforward `u_ff[1:4] = [dphi, dth, dpsi]` is **added directly to the NR control output** `[roll_rate, pitch_rate, yaw_rate]`, providing a baseline that the NR feedback corrects around rather than building up from zero.
+
+The thrust component `u_ff[0] = df` is not added to the NR thrust output (they live in different units: `df` is in m/s³, NR thrust is in N), so NR handles thrust authority through position tracking as normal.
 
 ## Dependencies
 

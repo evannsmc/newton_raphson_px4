@@ -7,7 +7,9 @@ from newton_raphson_px4_utils.controller.nr_utils import(
     predict_output, get_tracking_error, get_inv_jac_pred_u, get_integral_cbf
 )
 
-ALPHA = jnp.array([20.0, 30.0, 30.0, 30.0])
+# ALPHA = jnp.array([20.0, 30.0, 30.0, 30.0])
+
+ALPHA = jnp.array([50.0, 60.0, 60.0, 60.0])
 USE_CBF: bool = True
 
 

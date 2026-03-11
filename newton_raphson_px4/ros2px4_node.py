@@ -33,7 +33,8 @@ from quad_trajectories import (
     TrajContext,
     TrajectoryType,
     TRAJ_REGISTRY,
-    generate_reference_trajectory
+    generate_reference_trajectory,
+    flat_to_x_u,
 )
 from newton_raphson_px4_utils.controller.newton_raphson_px4 import newton_raphson_standard
 
@@ -63,12 +64,13 @@ class OffboardControl(Node):
     def __init__(self, platform_type: PlatformType, trajectory: TrajectoryType = TrajectoryType.HOVER, hover_mode: int|None = None,
                 double_speed: bool = True, short: bool = False, spin: bool = False,
                 pyjoules: bool = False, csv_handler: CSVHandler|None = None, logging_enabled: bool = False,
-                flight_period_: bool|None = None) -> None:
+                flight_period_: bool|None = None, feedforward: bool = False) -> None:
 
         super().__init__('offboard_control_node')
         self.get_logger().info(f"{BANNER}Initializing ROS 2 node: '{self.__class__.__name__}'{BANNER}")
         self.sim = platform_type==PlatformType.SIM
         self.platform_type = platform_type
+        self.feedforward = feedforward
         self.trajectory_type = trajectory
         self.hover_mode = hover_mode
         self.double_speed = double_speed
@@ -185,6 +187,10 @@ class OffboardControl(Node):
         self.first_thrust = self.platform.mass * GRAVITY
         self.last_input = np.array([self.first_thrust, 0.0, 0.0, 0.0])
         self.normalized_input = [self.platform.get_throttle_from_force(self.first_thrust), 0.0, 0.0, 0.0]
+        self.x_ff = None      # feedforward state (set when F8_CONTRACTION is active)
+        self.u_ff = None      # feedforward control (set when F8_CONTRACTION is active)
+        self._ff_jit = None  # JIT-compiled flat_to_x_u (created in jit_compile_trajectories)
+        self._traj_jit = None  # JIT-compiled trajectory generation (persists across mode switch)
 
         self.jit_compile_controller()
 
@@ -361,6 +367,37 @@ class OffboardControl(Node):
         print(f"  Regular trajectory (JIT): {ref = }, {ref_dot = }")
         print(f"  Regular trajectory (JIT): {regular_total_time_2:.4f}s")
         print(f"  Regular speed up: {(regular_total_time_1)/(regular_total_time_2):.2f}x")
+
+        if self.ref_type == TrajectoryType.F8_CONTRACTION and self.feedforward:
+            print("  Compiling feedforward (flat_to_x_u)...")
+            ctx = TrajContext(sim=self.sim, hover_mode=self.hover_mode, spin=self.spin,
+                              double_speed=False, short=self.short)
+            flat_output = lambda t: TRAJ_REGISTRY[TrajectoryType.F8_CONTRACTION](t, ctx)
+            self._ff_jit = jax.jit(lambda t: flat_to_x_u(t, flat_output))
+
+            x_ff, u_ff, ff_time_1 = self.time_and_compare(self._ff_jit, 0.0)
+            print(f"  Feedforward (NO JIT): {ff_time_1:.4f}s")
+            x_ff, u_ff, ff_time_2 = self.time_and_compare(self._ff_jit, 0.0)
+            print(f"  Feedforward (JIT): {ff_time_2:.4f}s")
+            print(f"  Feedforward speed up: {ff_time_1 / ff_time_2:.2f}x")
+
+        # Store a single JIT-compiled trajectory function for the main trajectory.
+        # By capturing traj_fn and ctx in the closure here (they never change), JAX
+        # traces and compiles the XLA program exactly ONCE during init and reuses it
+        # on every control-loop call — eliminating retrace delays at mode switch.
+        print("  Storing persistent JIT for main trajectory...")
+        _ctx_main = TrajContext(
+            sim=self.sim, hover_mode=self.hover_mode, spin=self.spin,
+            double_speed=False if self.ref_type == TrajectoryType.F8_CONTRACTION else self.double_speed,
+            short=self.short)
+        _traj_fn_main = TRAJ_REGISTRY[self.ref_type]
+        self._traj_jit = jax.jit(
+            lambda t_start: generate_reference_trajectory(_traj_fn_main, t_start, 0.0, 1, _ctx_main))
+        r, rd = self._traj_jit(0.0)
+        jax.block_until_ready((r, rd))  # first call: compiles
+        r, rd = self._traj_jit(0.0)
+        jax.block_until_ready((r, rd))  # second call: confirms fast
+        print(f"  Main trajectory JIT ready.")
 
 
     # ========== Subscriber Callbacks ==========
@@ -635,9 +672,20 @@ class OffboardControl(Node):
         # self.get_logger().warning(f"\nTrajectory time: {self.trajectory_time:.2f}s, Reference time: {self.reference_time:.2f}s", throttle_duration_sec=throttle_val)
         # self.get_logger().warning(f"[{self.program_time:.2f}s] Computing control. Trajectory time: {self.trajectory_time:.2f}s", throttle_duration_sec=throttle_val)
 
-        ref, ref_dot = self.generate_ref_trajectory(self.ref_type)
-        self.ref = ref.flatten()  # type: ignore
-        self.ref_dot = ref_dot.flatten()  # type: ignore
+        if self._traj_jit is not None:
+            ref, ref_dot = self._traj_jit(self.reference_time)
+        else:
+            ref, ref_dot = self.generate_ref_trajectory(self.ref_type)
+        self.ref = np.array(ref).flatten()
+        self.ref_dot = np.array(ref_dot).flatten()
+
+        if self.ref_type == TrajectoryType.F8_CONTRACTION and self.feedforward and self._ff_jit is not None:
+            x_ff, u_ff = self._ff_jit(self.reference_time)
+            self.x_ff = x_ff  # [px,py,pz, vx,vy,vz, f_specific, phi, th, psi]
+            self.u_ff = u_ff  # [df, dphi, dth, dpsi]
+        else:
+            self.x_ff = None
+            self.u_ff = None
 
 
         t0 = time.time()
@@ -671,10 +719,42 @@ class OffboardControl(Node):
             self.controller()
 
     def controller(self):
-        """Compute control input using standard Newton-Raphson (no feedforward)."""
+        """Compute control input using Newton-Raphson with optional feedforward."""
+        if self.u_ff is not None:
+            # u_ff[1:4] = [dphi, dth, dpsi] are Euler angle rates (world-frame).
+            # NR and the drone dynamics work in body rates [p, q, r].
+            # We must invert the kinematic transformation T before injecting:
+            #
+            #   [phi_dot, theta_dot, psi_dot] = T(roll, pitch) @ [p, q, r]
+            #   =>  [p, q, r] = T^{-1} @ [dphi, dth, dpsi]
+            #
+            # T is the same matrix used in nr_utils.body2world_angular_rates.
+            roll  = float(self.nr_state[6])
+            pitch = float(self.nr_state[7])
+            sr, cr = m.sin(roll),  m.cos(roll)
+            sp, cp = m.sin(pitch), m.cos(pitch)
+            tp     = sp / cp  # tan(pitch)
+            T = np.array([
+                [1.,  sr * tp,  cr * tp],
+                [0.,  cr,      -sr     ],
+                [0.,  sr / cp,  cr / cp],
+            ])
+            euler_rates_ff = np.array(self.u_ff[1:4])          # [dphi, dth, dpsi]
+            body_rates_ff  = np.linalg.solve(T, euler_rates_ff) # [p_ff, q_ff, r_ff]
+            thrust_ff      = self.platform.mass * float(self.x_ff[6])  # f_specific → F (N)
+
+            # Set the full feedforward operating point as the baseline for NR.
+            # NR then computes only the residual correction on top of this, so the
+            # Jacobian is evaluated at the correct operating point for all 4 components.
+            last_input = (jnp.array(self.last_input)
+                          .at[0].set(thrust_ff)
+                          .at[1:].set(body_rates_ff))
+        else:
+            last_input = jnp.array(self.last_input)
+
         new_input, cbf_term = newton_raphson_standard(
             jnp.array(self.nr_state),
-            jnp.array(self.last_input),
+            last_input,
             jnp.array(self.ref),
             jnp.array(self.T_LOOKAHEAD),
             jnp.array(self.LOOKAHEAD_STATE_DT),
