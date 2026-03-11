@@ -56,7 +56,7 @@ from pyJoules.device.rapl_device import RaplPackageDomain
 from pyJoules.energy_meter import EnergyContext
 
 
-from Logger import LogType, VectorLogType # pyright: ignore[reportMissingImports, reportAttributeAccessIssue]
+from ros2_logger import LogType, VectorLogType # pyright: ignore[reportMissingImports, reportAttributeAccessIssue]
 
 GRAVITY: float = 9.806
 

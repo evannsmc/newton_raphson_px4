@@ -16,7 +16,7 @@ The NR Flow controller is an integral-based control strategy based on a continuo
 - **Integral CBF safety constraints** — optional barrier functions to enforce input constraints (enabled by default)
 - **JAX JIT-compiled** — all control computations are JIT-compiled for real-time performance
 - **PX4 integration** — publishes attitude setpoints and offboard commands via `px4_msgs`
-- **Structured logging** — optional CSV logging via ROS2Logger with automatic analysis notebook generation
+- **Structured logging** — optional CSV logging via ros2_logger with automatic analysis notebook generation
 
 ## Control Parameters
 
@@ -77,7 +77,7 @@ The thrust component `u_ff[0] = df` is not added to the NR thrust output (they l
 
 - [quad_trajectories](https://github.com/evannsm/quad_trajectories) — trajectory definitions
 - [quad_platforms](https://github.com/evannsm/quad_platforms) — platform abstraction
-- [ROS2Logger](https://github.com/evannsm/ROS2Logger) — experiment logging
+- [ros2_logger](https://github.com/evannsm/ROS2Logger) — experiment logging
 - [px4_msgs](https://github.com/PX4/px4_msgs) — PX4 ROS 2 message definitions
 - JAX / jaxlib
 
