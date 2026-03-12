@@ -134,12 +134,12 @@ def ensure_csv(filename: str) -> str:
 def generate_log_filename(args) -> str:
     """Generate auto log filename based on configuration.
 
-    Format: {platform}_nr_std_{trajectory}_{speed}[_{short}][_{spin}].csv
+    Format: {platform}_nr_std_{trajectory}_{speed}[_{short}][_{spin}]_py.csv
 
     Examples:
-        sim_nr_std_helix_2x_spin.csv
-        sim_nr_std_circle_horz_1x.csv
-        hw_nr_std_fig8_vert_2x_short.csv
+        sim_nr_std_helix_2x_spin_py.csv
+        sim_nr_std_circle_horz_1x_py.csv
+        hw_nr_std_fig8_vert_2x_short_py.csv
     """
     parts = []
 
@@ -166,6 +166,8 @@ def generate_log_filename(args) -> str:
     # Spin
     if args.spin:
         parts.append("spin")
+
+    parts.append("py")
 
     return "_".join(parts)
 
