@@ -121,6 +121,13 @@ def create_parser():
         help='Mark log filename with _ff suffix (only valid with --trajectory=fig8_contraction)'
     )
 
+    parser.add_argument(
+        '--nr-profile',
+        choices=['baseline', 'workshop'],
+        default='baseline',
+        help='Newton-Raphson controller profile to run.'
+    )
+
     return parser
 
 def ensure_csv(filename: str) -> str:
@@ -156,6 +163,9 @@ def generate_log_filename(args) -> str:
     if args.ff:
         parts.append("ff")
 
+    if args.nr_profile != "baseline":
+        parts.append(args.nr_profile)
+
     # Speed
     parts.append("2x" if args.double_speed else "1x")
 
@@ -187,10 +197,6 @@ def validate_args(args, parser: argparse.ArgumentParser) -> None:
         # Disallow hover-mode when not doing hover
         if args.hover_mode is not None:
             parser.error("--hover-mode is only valid when --trajectory=hover")
-
-    # --ff is only valid with fig8_contraction
-    if args.ff and args.trajectory != TrajectoryType.FIG8_CONTRACTION:
-        parser.error("--ff is only valid with --trajectory=fig8_contraction")
 
     # Warn if --log-file is provided without --log
     if args.log_file is not None and not args.log:
@@ -230,6 +236,7 @@ def main():
     spin = args.spin
     flight_period = args.flight_period
     feedforward = args.ff
+    nr_profile = args.nr_profile
     base_path = _logger_base_path(__file__, 'newton_raphson_px4')
 
     # Determine log filename
@@ -256,6 +263,7 @@ def main():
     print(f"Short:         {'Enabled (fig8_vert)' if short else 'Disabled'}")
     print(f"Flight Period: {flight_period if flight_period is not None else 60.0 if platform == PlatformType.HARDWARE else 30.0} seconds")
     print(f"Spin:          {'Enabled (circle_horz, helix)' if spin else 'Disabled'}")
+    print(f"NR Profile:    {nr_profile}")
     print(f"Data Logging:  {'Enabled' if logging_enabled else 'Disabled'}")
 
     if logging_enabled:
@@ -276,6 +284,7 @@ def main():
         logging_enabled=logging_enabled,
         flight_period_=flight_period,
         feedforward=feedforward,
+        nr_profile=nr_profile,
     )
 
     logger = None

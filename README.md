@@ -18,12 +18,24 @@ The NR Flow controller is an integral-based control strategy based on a continuo
 - **PX4 integration** — publishes attitude setpoints and offboard commands via `px4_msgs`
 - **Structured logging** — optional CSV logging via ros2_logger with automatic analysis notebook generation
 
-## Control Parameters
+## Controller Profiles
 
-| Parameter | Value              | Description                               |
-| --------- | ------------------ | ----------------------------------------- |
-| `ALPHA`   | `[20, 30, 30, 30]` | Control gains `[x, y, z, yaw]`            |
-| `USE_CBF` | `True`             | Enable integral Control Barrier Functions |
+The standard Python node now exposes two explicit Newton-Raphson profiles via
+`--nr-profile`:
+
+| Profile | Lookahead | Predictor | Iterations | `alpha` | Integral action |
+| ------- | --------- | --------- | ---------- | ------- | --------------- |
+| `baseline` | `1.2 s` | ZOH | `1` | `[50, 60, 60, 60]` | Disabled |
+| `workshop` | `0.8 s` | FOH | `2` | `[45, 55, 55, 45]` | Enabled with bounded anti-windup |
+
+`baseline` preserves the current controller structure for direct comparisons.
+`workshop` is the validated structural improvement profile: shorter lookahead,
+first-order-hold prediction, bounded integral error injection, and two damped
+Newton updates per 100 Hz control cycle.
+
+For the measured Python comparison on April 1, 2026, see:
+
+- `docs/newton_raphson_workshop_profiles.qmd`
 
 ## Usage
 
@@ -43,6 +55,9 @@ ros2 run newton_raphson_px4 run_node --platform sim --trajectory hover --hover-m
 # fig8_contraction with feedforward, logged with _ff marker in filename
 ros2 run newton_raphson_px4 run_node --platform sim --trajectory fig8_contraction --ff --log
 # -> logs to: sim_nr_std_fig8_contraction_ff_1x.csv
+
+# Run the validated workshop profile
+ros2 run newton_raphson_px4 run_node --platform sim --trajectory fig8_horz --nr-profile workshop --log
 ```
 
 ### CLI Options
@@ -59,6 +74,7 @@ ros2 run newton_raphson_px4 run_node --platform sim --trajectory fig8_contractio
 | `--spin`                                        | Enable yaw rotation                                            |
 | `--flight-period SEC`                           | Custom flight duration                                         |
 | `--ff`                                          | Mark log filename with `_ff` (only valid with `fig8_contraction`) |
+| `--nr-profile {baseline,workshop}`              | Select the Newton-Raphson profile                              |
 
 ## Feedforward for `fig8_contraction`
 

@@ -1,6 +1,5 @@
-import jax
 import jax.numpy as jnp
-from jax import jit, jacfwd, lax, jacrev, hessian
+from jax import jacfwd, lax
 
 GRAVITY = 9.8  # Match Gazebo world (Tools/simulation/gz/worlds/default.sdf)
 USING_CBFS = True
@@ -48,49 +47,81 @@ def dynamics(state, input, mass):
     return xdot
 
 
-def fwd_euler(state, input, lookahead_step, integrations_int, mass):
-    """Forward Euler integration."""
-    def for_function(i, current_state):
-        return current_state + dynamics(current_state, input, mass) * lookahead_step
+def interpolate_input(u_prev, u_next, progress, use_foh):
+    """Select the control used during prediction.
 
-    pred_state = lax.fori_loop(0, integrations_int, for_function, state)
-    return pred_state
+    Baseline mode uses the classic zero-order hold on the candidate input.
+    Workshop mode uses a first-order hold from the current input toward the
+    candidate input to reduce the structural mismatch from assuming a 1.2 s
+    constant control command.
+    """
+    progress = jnp.clip(progress, 0.0, 1.0)
+    return lax.cond(
+        use_foh,
+        lambda _: u_prev + (u_next - u_prev) * progress,
+        lambda _: u_next,
+        operand=None,
+    )
 
-def rk4_pred(state, input, lookahead_step, integrations_int, mass):
+
+def rk4_pred(state, u_prev, u_next, lookahead_step, integrations_int, mass, use_foh):
+    total_steps = jnp.maximum(1, integrations_int).astype(state.dtype)
+
+    def input_at(stage_index, stage_fraction):
+        progress = (stage_index.astype(state.dtype) + stage_fraction) / total_steps
+        return interpolate_input(u_prev, u_next, progress, use_foh)
+
     def for_function(i, current_state):
-        k1 = dynamics(current_state, input, mass)
-        k2 = dynamics(current_state + k1 * lookahead_step / 2, input, mass)
-        k3 = dynamics(current_state + k2 * lookahead_step / 2, input, mass)
-        k4 = dynamics(current_state + k3 * lookahead_step, input, mass)
+        i_state = jnp.asarray(i, dtype=state.dtype)
+        u_k1 = input_at(i_state, 0.0)
+        u_k23 = input_at(i_state, 0.5)
+        u_k4 = input_at(i_state, 1.0)
+
+        k1 = dynamics(current_state, u_k1, mass)
+        k2 = dynamics(current_state + k1 * lookahead_step / 2, u_k23, mass)
+        k3 = dynamics(current_state + k2 * lookahead_step / 2, u_k23, mass)
+        k4 = dynamics(current_state + k3 * lookahead_step, u_k4, mass)
         return current_state + (k1 + 2*k2 + 2*k3 + k4) * lookahead_step / 6
 
     pred_state = lax.fori_loop(0, integrations_int, for_function, state)
     return pred_state
 
 
-def predict_state(state, u, T_lookahead, lookahead_step, mass):
-    """Predict the next state at time t+T via fwd euler integration of nonlinear dynamics."""
+def predict_state(state, u_prev, u_next, T_lookahead, lookahead_step, mass, use_foh):
+    """Predict the state at t+T using a configurable hold assumption."""
     integrations_int = (T_lookahead / lookahead_step).astype(int)
-    pred_state = rk4_pred(state, u, lookahead_step, integrations_int, mass)
+    pred_state = rk4_pred(state, u_prev, u_next, lookahead_step, integrations_int, mass, use_foh)
 
     return pred_state
 
 
-def predict_output(state, u, T_lookahead, lookahead_step, mass):
+def predict_output(state, u_prev, u_next, T_lookahead, lookahead_step, mass, use_foh):
     """Take output from the predicted states."""
-    pred_state = predict_state(state, u, T_lookahead, lookahead_step, mass)
+    pred_state = predict_state(state, u_prev, u_next, T_lookahead, lookahead_step, mass, use_foh)
     return C @ pred_state
 
 
-def get_jac_pred_u(state, last_input, T_lookahead, lookahead_step, mass):
-    """Get the jacobian of the predicted output with respect to the control input."""
-    raw_val = jacfwd(predict_output, 1)(state, last_input, T_lookahead, lookahead_step, mass)
+def get_jac_pred_u(state, last_input, candidate_input, T_lookahead, lookahead_step, mass, use_foh):
+    """Get the jacobian of the predicted output with respect to the candidate control input."""
+    raw_val = jacfwd(predict_output, 2)(
+        state, last_input, candidate_input, T_lookahead, lookahead_step, mass, use_foh
+    )
     return raw_val.reshape((4,4))
 
 
-def get_inv_jac_pred_u(state, last_input, T_lookahead, lookahead_step, mass):
+def get_inv_jac_pred_u(state, last_input, candidate_input, T_lookahead, lookahead_step, mass, use_foh):
     """Get the inverse of the jacobian of the predicted output with respect to the control input."""
-    return jnp.linalg.pinv(get_jac_pred_u(state, last_input, T_lookahead, lookahead_step, mass).reshape((4,4)))
+    return jnp.linalg.pinv(
+        get_jac_pred_u(
+            state,
+            last_input,
+            candidate_input,
+            T_lookahead,
+            lookahead_step,
+            mass,
+            use_foh,
+        ).reshape((4,4))
+    )
 
 
 # --- Integral Control Barrier Function (I-CBF) related functions ---
