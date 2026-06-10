@@ -93,15 +93,7 @@ The thrust component `u_ff[0] = df` is not added to the NR thrust output (they l
 
 - [quad_trajectories](https://github.com/evannsmc/quad_trajectories) — trajectory definitions
 - [quad_platforms](https://github.com/evannsmc/quad_platforms) — platform abstraction
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
 - [ros2_logger](https://github.com/evannsmc/ROS2Logger) — experiment logging
-=======
-- [ROS2Logger](https://github.com/evannsmc/ROS2Logger) — experiment logging
->>>>>>> Stashed changes
-=======
-- [ros2_logger](https://github.com/evannsmc/ROS2Logger) — experiment logging
->>>>>>> Stashed changes
 - [px4_msgs](https://github.com/PX4/px4_msgs) — PX4 ROS 2 message definitions
 - JAX / jaxlib
 
@@ -150,11 +142,4 @@ Transactions on Control Systems Technology 2025 - [see paper here](https://arxiv
 
 Transactions on Robotics 2025  
 [Personal Version of Repository](https://github.com/evannsmc/MoralesCuadrado_Baird_TCST2025)  
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-=======
->>>>>>> Stashed changes
 [Official FACTSLab Repository](https://github.com/gtfactslab/MoralesCuadrado_Baird_TCST2025)  
-=======
-[Official FACTSLab Repository](https://github.com/gtfactslab/MoralesCuadrado_Baird_TCST2025)  
->>>>>>> Stashed changes
