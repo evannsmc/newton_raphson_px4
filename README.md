@@ -14,17 +14,17 @@ The NR Flow controller is an integral-based control strategy based on a continuo
 
 ---
 
-**[<kbd> <br> Setup <br> </kbd>](#installation)**
-**[<kbd> <br> Workspace Layout <br> </kbd>](#workspace-layout-read-this-first)**
-**[<kbd> <br> Features <br> </kbd>](#key-features)**
-**[<kbd> <br> Usage <br> </kbd>](#usage)**
-**[<kbd> <br> Papers <br> </kbd>](#papers-and-their-repositories)**
+**[<kbd> <br> Setup <br> </kbd>](#installation)** 
+**[<kbd> <br> Workspace Layout <br> </kbd>](#workspace-layout-read-this-first)** 
+**[<kbd> <br> Features <br> </kbd>](#key-features)** 
+**[<kbd> <br> Usage <br> </kbd>](#usage)** 
+**[<kbd> <br> Papers <br> </kbd>](#papers-and-their-repositories)** 
 
 ---
 
 </div>
 
-<details>
+<details open>
 <summary><b>📖 Table of Contents</b></summary>
 
 - [Workspace Layout](#workspace-layout-read-this-first)
