@@ -118,7 +118,7 @@ def create_parser():
     parser.add_argument(
         '--ff',
         action='store_true',
-        help='Mark log filename with _ff suffix (only valid with --trajectory=fig8_contraction)'
+        help='Enable differential-flatness feedforward and mark the log filename with an _ff suffix (valid with any trajectory)'
     )
 
     return parser
@@ -152,7 +152,7 @@ def generate_log_filename(args) -> str:
     # Trajectory
     parts.append(args.trajectory.value)  # e.g., 'helix', 'circle_horz'
 
-    # Feedforward marker (before speed, only for fig8_contraction)
+    # Feedforward marker (before speed)
     if args.ff:
         parts.append("ff")
 

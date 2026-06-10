@@ -58,7 +58,7 @@ ros2 run newton_raphson_px4 run_node --platform sim --trajectory fig8_contractio
 | `--short`                                       | Short variant (fig8_vert)                                      |
 | `--spin`                                        | Enable yaw rotation                                            |
 | `--flight-period SEC`                           | Custom flight duration                                         |
-| `--ff`                                          | Mark log filename with `_ff` (only valid with `fig8_contraction`) |
+| `--ff`                                          | Enable feedforward and mark log filename with `_ff` (any trajectory) |
 
 ## Feedforward for `fig8_contraction`
 
