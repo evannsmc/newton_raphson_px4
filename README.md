@@ -10,6 +10,32 @@ This package allows for fast, accuate, and computationally efficient control via
 
 The NR Flow controller is an integral-based control strategy based on a continuous time flow-version of the known newton-raphson iterative algorithm for finding the zeros of functions. It has been shown to have desirable theoretical properties in previous work, including known tracking error bounds, and we show in our hardware implementations that it compares favorably to the native control stack of PX4 Autopilot, as well as NMPC. Notably, it outperforms NMPC in terms of speed and computational efficiency (measured by joules of energy expended by the CPU), and on complex trajectories it may even outperform NMPC due to computational constraints. This is an ideal controller when facing on-board computational limitations. In particular, we test and deploy this on an on-board Raspberry Pi 4 Model B on a Holybro x500V2 quadrotor and we compare it against the NMPC controller available in my [`NMPC_PX4`](https://github.com/evannsmc/NMPC_PX4) package.
 
+## Workspace Layout (read this first)
+
+`newton_raphson_px4` is **not standalone** — it is a ROS 2 package that imports from its sibling packages (`quad_platforms`, `quad_trajectories`, `ROS2Logger`) and the PX4 message definitions (`px4_msgs`). For these dependencies to resolve, all of them must live side-by-side under the `src/` directory of a single ROS 2 workspace so that `colcon build` discovers and builds them together:
+
+```
+ros2px4_ws/                  # your ROS 2 workspace (any name)
+└── src/
+    ├── newton_raphson_px4/   # this package
+    ├── quad_platforms/       # platform abstraction (mass, geometry, limits)
+    ├── quad_trajectories/    # trajectory definitions
+    ├── ROS2Logger/           # CSV experiment logging (imported as `ros2_logger`)
+    └── px4_msgs/             # PX4 ROS 2 message definitions
+```
+
+Then build once from the workspace root so every package is sourced into the same overlay:
+
+```bash
+cd ros2px4_ws
+colcon build --symlink-install
+source install/setup.bash
+```
+
+If you clone `newton_raphson_px4` on its own and try to build it, the import of `quad_platforms` / `ros2_logger` and the `px4_msgs` dependency will fail — the other packages simply aren't on the ROS 2 package path. Cloning them as siblings under the same `src/` is what makes the dependencies "work out."
+
+> Note: `ROS2Logger` is the GitHub repository name; the package it installs (and the name you `import`) is `ros2_logger`. JAX/jaxlib are installed separately into your Python environment (already present in the PX4-ROS2-Docker image's venv), not as workspace packages.
+
 ## Key Features
 
 - **Newton-Raphson control law** — iterative inversion of the system Jacobian for feedback linearization
@@ -100,11 +126,37 @@ newton_raphson_px4/
 
 ## Installation
 
+### Quick setup (recommended — Docker workflow)
+
+If you build/run via [PX4-ROS2-Docker](https://github.com/evannsmc/PX4-ROS2-Docker), the helper script bootstraps the whole workspace — it clones the Docker repo, lays out `src/` with every sibling package, and symlinks the workspace to the container's mount point so `make run` just works:
+
 ```bash
-# Inside a ROS 2 workspace src/ directory
-git clone git@github.com:evannsmc/newton_raphson_px4.git
-cd .. && colcon build --symlink-install
+./scripts/setup_px4_ros2_ws.sh            # full controller stack
+./scripts/setup_px4_ros2_ws.sh --minimal  # only what Newton-Raphson needs
 ```
+
+Run `./scripts/setup_px4_ros2_ws.sh --help` for options (`--ws`, `--docker`, `--https`). In the Docker workflow `px4_msgs` is **not** cloned into `src/` — the image ships a prebuilt copy at `/opt/ws_px4_msgs`, and JAX is already in its venv. After setup, follow [PX4-ROS2-Docker](https://github.com/evannsmc/PX4-ROS2-Docker) for `make build` / `make run` / `make build_ros`.
+
+### Manual setup (native build)
+
+To build natively (no Docker), clone this package **and its sibling dependencies** into the same workspace `src/` (see [Workspace Layout](#workspace-layout-read-this-first)), then build from the workspace root:
+
+```bash
+mkdir -p ros2px4_ws/src && cd ros2px4_ws/src
+
+# This package plus its sibling source dependencies
+git clone git@github.com:evannsmc/newton_raphson_px4.git
+git clone git@github.com:evannsmc/quad_platforms.git
+git clone git@github.com:evannsmc/quad_trajectories.git
+git clone git@github.com:evannsmc/ROS2Logger.git
+git clone https://github.com/PX4/px4_msgs.git
+
+# Build all packages together so the dependencies resolve
+cd .. && colcon build --symlink-install
+source install/setup.bash
+```
+
+JAX/jaxlib must be installed in your Python environment separately.
 
 ## License
 MIT
