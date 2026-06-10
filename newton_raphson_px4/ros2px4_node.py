@@ -35,11 +35,7 @@ from quad_trajectories import (
     generate_reference_trajectory,
     flat_to_x_u,
 )
-from newton_raphson_px4_utils.controller.newton_raphson_px4 import (
-    build_nr_profile,
-    newton_raphson_standard,
-)
-from newton_raphson_px4_utils.controller.nr_utils import get_tracking_error
+from newton_raphson_px4_utils.controller.newton_raphson_px4 import newton_raphson_standard
 
 
 from newton_raphson_px4_utils.main_utils import BANNER
@@ -67,8 +63,7 @@ class OffboardControl(Node):
     def __init__(self, platform_type: PlatformType, trajectory: TrajectoryType = TrajectoryType.HOVER, hover_mode: int|None = None,
                 double_speed: bool = True, short: bool = False, spin: bool = False,
                 pyjoules: bool = False, csv_handler: CSVHandler|None = None, logging_enabled: bool = False,
-                flight_period_: bool|None = None, feedforward: bool = False,
-                nr_profile: str = "baseline") -> None:
+                flight_period_: bool|None = None, feedforward: bool = False) -> None:
 
         super().__init__('offboard_control_node')
         self.get_logger().info(f"{BANNER}Initializing ROS 2 node: '{self.__class__.__name__}'{BANNER}")
@@ -82,7 +77,6 @@ class OffboardControl(Node):
         self.spin = spin
         self.pyjoules_on = pyjoules
         self.logging_enabled = logging_enabled
-        self.nr_profile = build_nr_profile(nr_profile)
         flight_period = flight_period_ if flight_period_ is not None else 30.0 if self.sim else 60.0
         
         if self.pyjoules_on:
@@ -181,31 +175,13 @@ class OffboardControl(Node):
         self.trajectory_time: float = 0.0
         self.reference_time: float = 0.0
 
-        # Controller profile: baseline preserves the current single-step ZOH NR
-        # controller, while workshop enables the proposed structural fixes.
-        self.T_LOOKAHEAD = self.nr_profile.lookahead_horizon_s
+        # JIT compilation test variables
+        self.T_LOOKAHEAD = 1.2
         self.LOOKAHEAD_STATE_DT = 0.05
-        self.compute_time = 0.0
-        self.nr_error_integral = np.zeros(4, dtype=np.float64)
-        self.nr_alpha = jnp.array(self.nr_profile.alpha)
-        self.nr_integral_gain = jnp.array(self.nr_profile.integral_gain)
-        self.nr_integral_limit = jnp.array(self.nr_profile.integral_limit)
-        self.nr_num_iterations = jnp.array(self.nr_profile.num_iterations)
-        self.nr_iteration_damping = jnp.array(self.nr_profile.iteration_damping)
-        self.nr_use_foh = jnp.array(self.nr_profile.use_foh)
-        print(
-            "[NR Profile] "
-            f"{self.nr_profile.name}: lookahead={self.T_LOOKAHEAD:.2f}s, "
-            f"iterations={self.nr_profile.num_iterations}, "
-            f"predictor={'FOH' if self.nr_profile.use_foh else 'ZOH'}"
-        )
 
         self.first_thrust = self.platform.mass * GRAVITY
         self.last_input = np.array([self.first_thrust, 0.0, 0.0, 0.0])
         self.normalized_input = [self.platform.get_throttle_from_force(self.first_thrust), 0.0, 0.0, 0.0]
-        self.ref = np.zeros(4, dtype=np.float64)
-        self.ref_dot = np.zeros(4, dtype=np.float64)
-        self.ref_now = np.zeros(4, dtype=np.float64)
         self.x_ff = None      # feedforward state (set when FIG8_CONTRACTION is active)
         self.u_ff = None      # feedforward control (set when FIG8_CONTRACTION is active)
         self.u_dev = None     # accumulated NR correction relative to feedforward operating point
@@ -317,17 +293,10 @@ class OffboardControl(Node):
             jnp.array(self._state0),
             jnp.array(self._input0),
             jnp.array(self._ref0),
-            jnp.array(self.nr_error_integral),
             jnp.array(self.T_LOOKAHEAD),
             jnp.array(self.LOOKAHEAD_STATE_DT),
             jnp.array(self.compute_control_timer_period),
             jnp.array(self.platform.mass),
-            self.nr_alpha,
-            self.nr_integral_gain,
-            self.nr_integral_limit,
-            self.nr_num_iterations,
-            self.nr_iteration_damping,
-            self.nr_use_foh,
         )
         print(f"  Result (NO JIT): {input=},\n  {cbf_term=}")
         print(f"  Time Taken (NO JIT): {total_time1:.4f}s")
@@ -337,17 +306,10 @@ class OffboardControl(Node):
             jnp.array(self._state0),
             jnp.array(self._input0),
             jnp.array(self._ref0),
-            jnp.array(self.nr_error_integral),
             jnp.array(self.T_LOOKAHEAD),
             jnp.array(self.LOOKAHEAD_STATE_DT),
             jnp.array(self.compute_control_timer_period),
             jnp.array(self.platform.mass),
-            self.nr_alpha,
-            self.nr_integral_gain,
-            self.nr_integral_limit,
-            self.nr_num_iterations,
-            self.nr_iteration_damping,
-            self.nr_use_foh,
         )
         print(f"  Result (JIT):\n  {input=},\n  {cbf_term=}")
         print(f"  Time Taken (JIT):\n  {total_time2:.4f}s")
@@ -698,7 +660,6 @@ class OffboardControl(Node):
             self.trajectory_T0 = time.time()
             self.trajectory_time = 0.0
             self.trajectory_started = True
-            self.nr_error_integral = np.zeros(4, dtype=np.float64)
 
         self.trajectory_time = time.time() - self.trajectory_T0
         self.reference_time = self.trajectory_time + self.T_LOOKAHEAD
@@ -707,14 +668,10 @@ class OffboardControl(Node):
 
         if self._traj_jit is not None:
             ref, ref_dot = self._traj_jit(self.reference_time)
-            ref_now, _ = self._traj_jit(self.trajectory_time)
         else:
-            ref, ref_dot = self.generate_ref_trajectory(self.ref_type, t_start=self.reference_time)
-            ref_now, _ = self.generate_ref_trajectory(self.ref_type, t_start=self.trajectory_time)
+            ref, ref_dot = self.generate_ref_trajectory(self.ref_type)
         self.ref = np.array(ref).flatten()
         self.ref_dot = np.array(ref_dot).flatten()
-        self.ref_now = np.array(ref_now).flatten()
-        self.update_nr_error_integral()
 
         if self.feedforward and self._ff_jit is not None:
             x_ff, u_ff = self._ff_jit(self.reference_time)
@@ -746,15 +703,6 @@ class OffboardControl(Node):
 
         self.normalized_input = [new_throttle, new_roll_rate, new_pitch_rate, new_yaw_rate]
         # self.get_logger().warning(f"\nNormalized control input (throttle, p, q, r): {self.normalized_input}", throttle_duration_sec=throttle_val)
-
-    def update_nr_error_integral(self) -> None:
-        current_error = np.array(
-            get_tracking_error(jnp.array(self.ref_now), jnp.array(self.state_output)),
-            dtype=np.float64,
-        )
-        self.nr_error_integral += current_error * self.compute_control_timer_period
-        limit = np.asarray(self.nr_profile.integral_limit, dtype=np.float64)
-        self.nr_error_integral = np.clip(self.nr_error_integral, -limit, limit)
 
     def controller_handler(self):
         """Wrapper for controller computation."""
@@ -804,17 +752,10 @@ class OffboardControl(Node):
             jnp.array(self.nr_state),
             last_input,
             jnp.array(self.ref),
-            jnp.array(self.nr_error_integral),
             jnp.array(self.T_LOOKAHEAD),
             jnp.array(self.LOOKAHEAD_STATE_DT),
             jnp.array(self.compute_control_timer_period),
             jnp.array(self.platform.mass),
-            self.nr_alpha,
-            self.nr_integral_gain,
-            self.nr_integral_limit,
-            self.nr_num_iterations,
-            self.nr_iteration_damping,
-            self.nr_use_foh,
         )
         if self.u_ff is not None:
             self.u_dev = np.array(new_input) - u_ff_vec
@@ -823,7 +764,7 @@ class OffboardControl(Node):
 
 
 
-    def generate_ref_trajectory(self, traj_type: TrajectoryType, t_start: float | None = None, **ctx_overrides):
+    def generate_ref_trajectory(self, traj_type: TrajectoryType, **ctx_overrides):
         """Generate reference trajectory."""
         ctx_dict = {
             'sim': self.sim,
@@ -837,7 +778,7 @@ class OffboardControl(Node):
 
         return generate_reference_trajectory(
             traj_func=traj_func,
-            t_start=self.reference_time if t_start is None else t_start,
+            t_start=self.reference_time,
             horizon=0.0,
             num_steps=1,
             ctx=ctx

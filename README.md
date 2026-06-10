@@ -16,26 +16,14 @@ The NR Flow controller is an integral-based control strategy based on a continuo
 - **Integral CBF safety constraints** — optional barrier functions to enforce input constraints (enabled by default)
 - **JAX JIT-compiled** — all control computations are JIT-compiled for real-time performance
 - **PX4 integration** — publishes attitude setpoints and offboard commands via `px4_msgs`
-- **Structured logging** — optional CSV logging via ros2_logger with automatic analysis notebook generation
+- **Structured logging** — optional CSV logging via ROS2Logger with automatic analysis notebook generation
 
-## Controller Profiles
+## Control Parameters
 
-The standard Python node now exposes two explicit Newton-Raphson profiles via
-`--nr-profile`:
-
-| Profile | Lookahead | Predictor | Iterations | `alpha` | Integral action |
-| ------- | --------- | --------- | ---------- | ------- | --------------- |
-| `baseline` | `1.2 s` | ZOH | `1` | `[50, 60, 60, 60]` | Disabled |
-| `workshop` | `0.8 s` | FOH | `2` | `[45, 55, 55, 45]` | Enabled with bounded anti-windup |
-
-`baseline` preserves the current controller structure for direct comparisons.
-`workshop` is the validated structural improvement profile: shorter lookahead,
-first-order-hold prediction, bounded integral error injection, and two damped
-Newton updates per 100 Hz control cycle.
-
-For the measured Python comparison on April 1, 2026, see:
-
-- `docs/qmd/newton_raphson_workshop_profiles.qmd`
+| Parameter | Value              | Description                               |
+| --------- | ------------------ | ----------------------------------------- |
+| `ALPHA`   | `[20, 30, 30, 30]` | Control gains `[x, y, z, yaw]`            |
+| `USE_CBF` | `True`             | Enable integral Control Barrier Functions |
 
 ## Usage
 
@@ -55,9 +43,6 @@ ros2 run newton_raphson_px4 run_node --platform sim --trajectory hover --hover-m
 # fig8_contraction with feedforward, logged with _ff marker in filename
 ros2 run newton_raphson_px4 run_node --platform sim --trajectory fig8_contraction --ff --log
 # -> logs to: sim_nr_std_fig8_contraction_ff_1x.csv
-
-# Run the validated workshop profile
-ros2 run newton_raphson_px4 run_node --platform sim --trajectory fig8_horz --nr-profile workshop --log
 ```
 
 ### CLI Options
@@ -74,7 +59,6 @@ ros2 run newton_raphson_px4 run_node --platform sim --trajectory fig8_horz --nr-
 | `--spin`                                        | Enable yaw rotation                                            |
 | `--flight-period SEC`                           | Custom flight duration                                         |
 | `--ff`                                          | Mark log filename with `_ff` (only valid with `fig8_contraction`) |
-| `--nr-profile {baseline,workshop}`              | Select the Newton-Raphson profile                              |
 
 ## Feedforward for `fig8_contraction`
 
@@ -93,7 +77,7 @@ The thrust component `u_ff[0] = df` is not added to the NR thrust output (they l
 
 - [quad_trajectories](https://github.com/evannsmc/quad_trajectories) — trajectory definitions
 - [quad_platforms](https://github.com/evannsmc/quad_platforms) — platform abstraction
-- [ros2_logger](https://github.com/evannsmc/ROS2Logger) — experiment logging
+- [ROS2Logger](https://github.com/evannsmc/ROS2Logger) — experiment logging
 - [px4_msgs](https://github.com/PX4/px4_msgs) — PX4 ROS 2 message definitions
 - JAX / jaxlib
 
