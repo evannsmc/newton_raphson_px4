@@ -18,6 +18,7 @@ The NR Flow controller is an integral-based control strategy based on a continuo
 **[<kbd> <br> Workspace Layout <br> </kbd>](#workspace-layout-read-this-first)** 
 **[<kbd> <br> Features <br> </kbd>](#key-features)** 
 **[<kbd> <br> Usage <br> </kbd>](#usage)** 
+**[<kbd> <br> Mocap <br> </kbd>](#hardware-with-motion-capture)** 
 **[<kbd> <br> Papers <br> </kbd>](#papers-and-their-repositories)** 
 
 ---
@@ -40,6 +41,7 @@ The NR Flow controller is an integral-based control strategy based on a continuo
   - [2. Docker (manual)](#2-docker-manual)
   - [3. Script (native, no Docker)](#3-script-native-no-docker)
   - [4. Manual (native, no Docker)](#4-manual-native-no-docker)
+- [Hardware with Motion Capture](#hardware-with-motion-capture)
 - [License](#license)
 - [Website](#website)
 - [Papers and their repositories](#papers-and-their-repositories)
@@ -140,7 +142,7 @@ The thrust component `u_ff[0] = df` is not added to the NR thrust output (they l
 - [quad_trajectories](https://github.com/evannsmc/quad_trajectories) — trajectory definitions
 - [quad_platforms](https://github.com/evannsmc/quad_platforms) — platform abstraction
 - [ROS2Logger](https://github.com/evannsmc/ROS2Logger) — experiment logging
-- [px4_msgs](https://github.com/PX4/px4_msgs) — PX4 ROS 2 message definitions
+- [px4_msgs](https://github.com/evannsmc/px4_msgs/tree/v1.16_minimal_msgs) — PX4 ROS 2 message definitions (use the `v1.16_minimal_msgs` branch for PX4 v1.16)
 - JAX / jaxlib
 
 ## Package Structure
@@ -210,13 +212,34 @@ git clone git@github.com:evannsmc/newton_raphson_px4.git
 git clone git@github.com:evannsmc/quad_platforms.git
 git clone git@github.com:evannsmc/quad_trajectories.git
 git clone git@github.com:evannsmc/ROS2Logger.git
-git clone https://github.com/PX4/px4_msgs.git
+git clone -b v1.16_minimal_msgs git@github.com:evannsmc/px4_msgs.git  # PX4 v1.16 minimal messages
 
 cd .. && colcon build --symlink-install
 source install/setup.bash
 ```
 
 JAX/jaxlib must be installed in your Python environment separately.
+
+## Hardware with Motion Capture
+
+For hardware flights that rely on an external motion-capture system for state estimation (instead of onboard GPS/VIO), clone the bridge for your mocap system plus its supporting packages into your workspace `src/`, alongside this controller:
+
+```bash
+cd <your_ws>/src
+
+# Pick the bridge for your mocap system:
+git clone git@github.com:evannsmc/vicon4px4.git        # Vicon
+git clone git@github.com:evannsmc/optitrack4px4.git    # OptiTrack
+
+# Supporting packages for the mocap → PX4 pipeline (skip px4_msgs if already cloned):
+git clone -b v1.16_minimal_msgs git@github.com:evannsmc/px4_msgs.git
+git clone git@github.com:evannsmc/mocap_msgs.git
+git clone git@github.com:evannsmc/mocap_px4_relays.git
+
+cd .. && colcon build --symlink-install
+```
+
+See the [vicon4px4](https://github.com/evannsmc/vicon4px4) and [optitrack4px4](https://github.com/evannsmc/optitrack4px4) READMEs for system-specific configuration (rigid-body/frame names, host/IP, and `ROS_DOMAIN_ID`).
 
 ## License
 MIT
