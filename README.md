@@ -10,6 +10,42 @@ This package allows for fast, accuate, and computationally efficient control via
 
 The NR Flow controller is an integral-based control strategy based on a continuous time flow-version of the known newton-raphson iterative algorithm for finding the zeros of functions. It has been shown to have desirable theoretical properties in previous work, including known tracking error bounds, and we show in our hardware implementations that it compares favorably to the native control stack of PX4 Autopilot, as well as NMPC. Notably, it outperforms NMPC in terms of speed and computational efficiency (measured by joules of energy expended by the CPU), and on complex trajectories it may even outperform NMPC due to computational constraints. This is an ideal controller when facing on-board computational limitations. In particular, we test and deploy this on an on-board Raspberry Pi 4 Model B on a Holybro x500V2 quadrotor and we compare it against the NMPC controller available in my [`NMPC_PX4`](https://github.com/evannsmc/NMPC_PX4) package.
 
+<div align="center">
+
+---
+
+**[<kbd> <br> Setup <br> </kbd>](#installation)**
+**[<kbd> <br> Workspace Layout <br> </kbd>](#workspace-layout-read-this-first)**
+**[<kbd> <br> Features <br> </kbd>](#key-features)**
+**[<kbd> <br> Usage <br> </kbd>](#usage)**
+**[<kbd> <br> Papers <br> </kbd>](#papers-and-their-repositories)**
+
+---
+
+</div>
+
+<details>
+<summary><b>📖 Table of Contents</b></summary>
+
+- [Workspace Layout](#workspace-layout-read-this-first)
+- [Key Features](#key-features)
+- [Control Parameters](#control-parameters)
+- [Usage](#usage)
+  - [CLI Options](#cli-options)
+- [Feedforward for `fig8_contraction`](#feedforward-for-fig8_contraction)
+- [Dependencies](#dependencies)
+- [Package Structure](#package-structure)
+- [Installation](#installation)
+  - [1. Docker + script (recommended)](#1-docker--script-recommended)
+  - [2. Docker (manual)](#2-docker-manual)
+  - [3. Script (native, no Docker)](#3-script-native-no-docker)
+  - [4. Manual (native, no Docker)](#4-manual-native-no-docker)
+- [License](#license)
+- [Website](#website)
+- [Papers and their repositories](#papers-and-their-repositories)
+
+</details>
+
 ## Workspace Layout (read this first)
 
 `newton_raphson_px4` is **not standalone** — it is a ROS 2 package that imports from its sibling packages (`quad_platforms`, `quad_trajectories`, `ROS2Logger`) and the PX4 message definitions (`px4_msgs`). For these dependencies to resolve, all of them must live side-by-side under the `src/` directory of a single ROS 2 workspace so that `colcon build` discovers and builds them together:
