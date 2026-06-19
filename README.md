@@ -33,7 +33,7 @@ The NR Flow controller is an integral-based control strategy based on a continuo
 - [Control Parameters](#control-parameters)
 - [Usage](#usage)
   - [CLI Options](#cli-options)
-- [Feedforward for `fig8_contraction`](#feedforward-for-fig8_contraction)
+- [Feedforward for `fig8_akash`](#feedforward-for-fig8_akash)
 - [Dependencies](#dependencies)
 - [Package Structure](#package-structure)
 - [Installation](#installation)
@@ -104,9 +104,9 @@ ros2 run newton_raphson_px4 run_node --platform hw --trajectory helix --log
 # Hover mode 3, double speed, with yaw spin
 ros2 run newton_raphson_px4 run_node --platform sim --trajectory hover --hover-mode 3 --double-speed --spin
 
-# fig8_contraction with feedforward, logged with _ff marker in filename
-ros2 run newton_raphson_px4 run_node --platform sim --trajectory fig8_contraction --ff --log
-# -> logs to: sim_nr_std_fig8_contraction_ff_1x.csv
+# fig8_akash with feedforward, logged with _ff marker in filename
+ros2 run newton_raphson_px4 run_node --platform sim --trajectory fig8_akash --ff --log
+# -> logs to: sim_nr_std_fig8_akash_ff_1x.csv
 ```
 
 ### CLI Options
@@ -124,9 +124,9 @@ ros2 run newton_raphson_px4 run_node --platform sim --trajectory fig8_contractio
 | `--flight-period SEC`                           | Custom flight duration                                         |
 | `--ff`                                          | Enable feedforward and mark log filename with `_ff` (any trajectory) |
 
-## Feedforward for `fig8_contraction`
+## Feedforward for `fig8_akash`
 
-When the `fig8_contraction` trajectory is selected, the node computes a differential-flatness feedforward at each control step using the same approach as the contraction controller (`flat_to_x_u` from `quad_trajectories`).
+When the `fig8_akash` trajectory is selected, the node computes a differential-flatness feedforward at each control step using the same approach as the contraction controller (`flat_to_x_u` from `quad_trajectories`).
 
 **How it works:**
 

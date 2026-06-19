@@ -182,8 +182,8 @@ class OffboardControl(Node):
         self.first_thrust = self.platform.mass * GRAVITY
         self.last_input = np.array([self.first_thrust, 0.0, 0.0, 0.0])
         self.normalized_input = [self.platform.get_throttle_from_force(self.first_thrust), 0.0, 0.0, 0.0]
-        self.x_ff = None      # feedforward state (set when FIG8_CONTRACTION is active)
-        self.u_ff = None      # feedforward control (set when FIG8_CONTRACTION is active)
+        self.x_ff = None      # feedforward state (set when FIG8_AKASH is active)
+        self.u_ff = None      # feedforward control (set when FIG8_AKASH is active)
         self.u_dev = None     # accumulated NR correction relative to feedforward operating point
         self._ff_jit = None  # JIT-compiled flat_to_x_u (created in jit_compile_trajectories)
         self._traj_jit = None  # JIT-compiled trajectory generation (persists across mode switch)
@@ -367,7 +367,7 @@ class OffboardControl(Node):
         if self.feedforward:
             print("  Compiling feedforward (flat_to_x_u)...")
             ctx = TrajContext(sim=self.sim, hover_mode=self.hover_mode, spin=self.spin,
-                              double_speed=False if self.ref_type == TrajectoryType.FIG8_CONTRACTION else self.double_speed,
+                              double_speed=False if self.ref_type == TrajectoryType.FIG8_AKASH else self.double_speed,
                               short=self.short)
             flat_output = lambda t: TRAJ_REGISTRY[self.ref_type](t, ctx)
             self._ff_jit = jax.jit(lambda t: flat_to_x_u(t, flat_output))
@@ -385,7 +385,7 @@ class OffboardControl(Node):
         print("  Storing persistent JIT for main trajectory...")
         _ctx_main = TrajContext(
             sim=self.sim, hover_mode=self.hover_mode, spin=self.spin,
-            double_speed=False if self.ref_type == TrajectoryType.FIG8_CONTRACTION else self.double_speed,
+            double_speed=False if self.ref_type == TrajectoryType.FIG8_AKASH else self.double_speed,
             short=self.short)
         _traj_fn_main = TRAJ_REGISTRY[self.ref_type]
         self._traj_jit = jax.jit(
