@@ -6,7 +6,7 @@
 
 This package is the culmination of 3 papers on Newton-Raphson Flow for Quadrotor Control.
 
-This package allows for fast, accuate, and computationally efficient control via the Newton-Raphson Flow (NR Flow) controller developed by Dr. Yorai Wardi and others. We introduce integral CBFs (I-CBFs) to smoothly limit control actuation.
+This package allows for fast, accurate, and computationally efficient control via the Newton-Raphson Flow (NR Flow) controller developed by Dr. Yorai Wardi and others. We introduce integral CBFs (I-CBFs) to smoothly limit control actuation.
 
 The NR Flow controller is an integral-based control strategy based on a continuous time flow-version of the known newton-raphson iterative algorithm for finding the zeros of functions. It has been shown to have desirable theoretical properties in previous work, including known tracking error bounds, and we show in our hardware implementations that it compares favorably to the native control stack of PX4 Autopilot, as well as NMPC. Notably, it outperforms NMPC in terms of speed and computational efficiency (measured by joules of energy expended by the CPU), and on complex trajectories it may even outperform NMPC due to computational constraints. This is an ideal controller when facing on-board computational limitations. In particular, we test and deploy this on an on-board Raspberry Pi 4 Model B on a Holybro x500V2 quadrotor and we compare it against the NMPC controller available in my [`NMPC_PX4`](https://github.com/evannsmc/NMPC_PX4) package.
 
@@ -18,8 +18,8 @@ The NR Flow controller is an integral-based control strategy based on a continuo
 **[<kbd> <br> Workspace Layout <br> </kbd>](#workspace-layout-read-this-first)** 
 **[<kbd> <br> Features <br> </kbd>](#key-features)** 
 **[<kbd> <br> Usage <br> </kbd>](#usage)** 
-**[<kbd> <br> Mocap <br> </kbd>](#hardware-with-motion-capture)** 
-**[<kbd> <br> Papers <br> </kbd>](#papers-and-their-repositories)** 
+**[<kbd> <br> Mocap <br> </kbd>](#hardware-with-motion-capture)** 
+**[<kbd> <br> Papers <br> </kbd>](#papers-and-repositories)** 
 
 ---
 
@@ -42,9 +42,9 @@ The NR Flow controller is an integral-based control strategy based on a continuo
   - [3. Script (native, no Docker)](#3-script-native-no-docker)
   - [4. Manual (native, no Docker)](#4-manual-native-no-docker)
 - [Hardware with Motion Capture](#hardware-with-motion-capture)
-- [License](#license)
+- [Papers and Repositories](#papers-and-repositories)
 - [Website](#website)
-- [Papers and their repositories](#papers-and-their-repositories)
+- [License](#license)
 
 </details>
 
@@ -241,8 +241,25 @@ cd .. && colcon build --symlink-install
 
 See the [vicon4px4](https://github.com/evannsmc/vicon4px4) and [optitrack4px4](https://github.com/evannsmc/optitrack4px4) READMEs for system-specific configuration (rigid-body/frame names, host/IP, and `ROS_DOMAIN_ID`).
 
-## License
-MIT
+## Papers and Repositories
+
+American Control Conference 2024 — [paper](https://coogan.ece.gatech.edu/papers/pdf/cuadrado2024tracking.pdf)
+| [Personal repo](https://github.com/evannsmc/MoralesCuadrado_ACC2024)
+| [FACTSLab repo](https://github.com/gtfactslab/MoralesCuadrado_Llanes_ACC2024)
+
+Transactions on Control Systems Technology 2025 — [paper](https://arxiv.org/abs/2508.14185)
+| [Personal repo](https://github.com/evannsmc/MoralesCuadrado_Baird_TCST2025)
+| [FACTSLab repo](https://github.com/gtfactslab/Baird_MoralesCuadrado_TRO_2025)
+
+Transactions on Robotics 2025
+| [Personal repo](https://github.com/evannsmc/MoralesCuadrado_Baird_TCST2025)
+| [FACTSLab repo](https://github.com/gtfactslab/MoralesCuadrado_Baird_TCST2025)
+
+### Related Work
+
+- [2025_NewtonRaphson_QuadrotorComplete](https://github.com/evannsmc/2025_NewtonRaphson_QuadrotorComplete)
+- [Blimp_SimHardware_NR_MPC_FBL_BodyOfWork2024](https://github.com/evannsmc/Blimp_SimHardware_NR_MPC_FBL_BodyOfWork2024)
+
 
 ## Website
 
@@ -250,15 +267,7 @@ This project is part of the [evannsmc open-source portfolio](https://www.evannsm
 
 - [Project page](https://www.evannsmc.com/projects/nr-flow)
 
-# Papers and their repositories:
-American Control Conference 2024 - [see paper here](https://coogan.ece.gatech.edu/papers/pdf/cuadrado2024tracking.pdf)  
-[Personal Version of Repository](https://github.com/evannsmc/MoralesCuadrado_ACC2024)  
-[Official FACTSLab Repository](https://github.com/gtfactslab/MoralesCuadrado_Llanes_ACC2024)  
 
-Transactions on Control Systems Technology 2025 - [see paper here](https://arxiv.org/abs/2508.14185)  
-[Personal Version of Repository](https://github.com/evannsmc/MoralesCuadrado_Baird_TCST2025)  
-[Official FACTSLab Repository](https://github.com/gtfactslab/Baird_MoralesCuadrado_TRO_2025)  
+## License
 
-Transactions on Robotics 2025  
-[Personal Version of Repository](https://github.com/evannsmc/MoralesCuadrado_Baird_TCST2025)  
-[Official FACTSLab Repository](https://github.com/gtfactslab/MoralesCuadrado_Baird_TCST2025)  
+MIT
