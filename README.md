@@ -2,6 +2,7 @@
 ![Status](https://img.shields.io/badge/Status-Hardware_Validated-blue)
 [![ROS 2 Compatible](https://img.shields.io/badge/ROS%202-Humble_%7C_Jazzy-blue)](https://docs.ros.org/)
 [![PX4 Compatible](https://img.shields.io/badge/PX4-Autopilot-pink)](https://github.com/PX4/PX4-Autopilot)
+[![Docker: PX4-ROS2-Docker](https://img.shields.io/badge/Docker-PX4--ROS2--Docker-2496ED?logo=docker&logoColor=white)](https://github.com/evannsmc/PX4-ROS2-Docker)
 [![evannsmc.com](https://img.shields.io/badge/evannsmc.com-Project%20Page-blue)](https://www.evannsmc.com/projects/nr-flow)
 
 This package is the culmination of 3 papers on Newton-Raphson Flow for Quadrotor Control.
