@@ -55,12 +55,12 @@ ros2 run newton_raphson_px4 run_node --platform sim --trajectory yaw_only
 ros2 run newton_raphson_px4 run_node --platform sim --trajectory yaw_only --double-speed
 
 # Figure-8 Contraction (no feedforward marker)
-ros2 run newton_raphson_px4 run_node --platform sim --trajectory fig8_akash
-ros2 run newton_raphson_px4 run_node --platform sim --trajectory fig8_akash --double-speed
+ros2 run newton_raphson_px4 run_node --platform sim --trajectory fig8_contraction
+ros2 run newton_raphson_px4 run_node --platform sim --trajectory fig8_contraction --double-speed
 
 # Figure-8 Contraction with feedforward log marker
-ros2 run newton_raphson_px4 run_node --platform sim --trajectory fig8_akash --ff
-ros2 run newton_raphson_px4 run_node --platform sim --trajectory fig8_akash --ff --double-speed
+ros2 run newton_raphson_px4 run_node --platform sim --trajectory fig8_contraction --ff
+ros2 run newton_raphson_px4 run_node --platform sim --trajectory fig8_contraction --ff --double-speed
 ```
 
 ### Hardware
@@ -89,11 +89,11 @@ Add `--log` to auto-generate log filename based on configuration:
 # Auto-generated filename: sim_nr_std_helix_2x_spin.csv
 ros2 run newton_raphson_px4 run_node --platform sim --trajectory helix --double-speed --spin --log
 
-# Auto-generated filename: sim_nr_std_fig8_akash_ff_1x.csv
-ros2 run newton_raphson_px4 run_node --platform sim --trajectory fig8_akash --ff --log
+# Auto-generated filename: sim_nr_std_fig8_contraction_ff_1x.csv
+ros2 run newton_raphson_px4 run_node --platform sim --trajectory fig8_contraction --ff --log
 
-# Auto-generated filename: sim_nr_std_fig8_akash_ff_2x.csv
-ros2 run newton_raphson_px4 run_node --platform sim --trajectory fig8_akash --ff --double-speed --log
+# Auto-generated filename: sim_nr_std_fig8_contraction_ff_2x.csv
+ros2 run newton_raphson_px4 run_node --platform sim --trajectory fig8_contraction --ff --double-speed --log
 
 # Custom filename
 ros2 run newton_raphson_px4 run_node --platform sim --trajectory helix --log --log-file my_experiment
@@ -111,7 +111,7 @@ ros2 run newton_raphson_px4 run_node --platform sim --trajectory helix --double-
 | Argument | Required | Values | Description |
 |----------|----------|--------|-------------|
 | `--platform` | Yes | `sim`, `hw` | Platform type |
-| `--trajectory` | Yes | `hover`, `yaw_only`, `circle_horz`, `circle_vert`, `fig8_horz`, `fig8_vert`, `helix`, `sawtooth`, `triangle`, `fig8_akash` | Trajectory type |
+| `--trajectory` | Yes | `hover`, `yaw_only`, `circle_horz`, `circle_vert`, `fig8_horz`, `fig8_vert`, `helix`, `sawtooth`, `triangle`, `fig8_contraction` | Trajectory type |
 | `--hover-mode` | If hover | `1-8` (sim), `1-4` (hw) | Hover position |
 | `--double-speed` | No | flag | 2x trajectory speed |
 | `--short` | No | flag | Short fig8_vert variant |
@@ -119,7 +119,7 @@ ros2 run newton_raphson_px4 run_node --platform sim --trajectory helix --double-
 | `--log` | No | flag | Enable data logging |
 | `--log-file` | No | string | Custom log filename |
 | `--pyjoules` | No | flag | Energy monitoring |
-| `--ff` | No | flag | Mark log filename with `_ff` (only valid with `fig8_akash`) |
+| `--ff` | No | flag | Mark log filename with `_ff` (only valid with `fig8_contraction`) |
 
 ## Difference from Enhanced Controller
 

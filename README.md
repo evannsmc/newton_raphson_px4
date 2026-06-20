@@ -8,7 +8,7 @@ This package is the culmination of 3 papers on Newton-Raphson Flow for Quadrotor
 
 This package allows for fast, accurate, and computationally efficient control via the Newton-Raphson Flow (NR Flow) controller developed by Dr. Yorai Wardi and others. We introduce integral CBFs (I-CBFs) to smoothly limit control actuation.
 
-The NR Flow controller is an integral-based control strategy based on a continuous time flow-version of the known newton-raphson iterative algorithm for finding the zeros of functions. It has been shown to have desirable theoretical properties in previous work, including known tracking error bounds, and we show in our hardware implementations that it compares favorably to the native control stack of PX4 Autopilot, as well as NMPC. Notably, it outperforms NMPC in terms of speed and computational efficiency (measured by joules of energy expended by the CPU), and on complex trajectories it may even outperform NMPC due to computational constraints. This is an ideal controller when facing on-board computational limitations. In particular, we test and deploy this on an on-board Raspberry Pi 4 Model B on a Holybro x500V2 quadrotor and we compare it against the NMPC controller available in my [`NMPC_PX4`](https://github.com/evannsmc/NMPC_PX4) package.
+The NR Flow controller is an integral-based control strategy based on a continuous time flow-version of the known newton-raphson iterative algorithm for finding the zeros of functions. It has been shown to have desirable theoretical properties in previous work, including known tracking error bounds, and we show in our hardware implementations that it compares favorably to the native control stack of PX4 Autopilot, as well as NMPC. Notably, it outperforms NMPC in terms of speed and computational efficiency (measured by joules of energy expended by the CPU), and on complex trajectories it may even outperform NMPC due to computational constraints. This is an ideal controller when facing on-board computational limitations. In particular, we test and deploy this on an on-board Raspberry Pi 4 Model B on a Holybro x500V2 quadrotor and we compare it against the NMPC controller available in my [`nmpc_acados_px4`](https://github.com/evannsmc/nmpc_acados_px4) package.
 
 <div align="center">
 
@@ -33,7 +33,7 @@ The NR Flow controller is an integral-based control strategy based on a continuo
 - [Control Parameters](#control-parameters)
 - [Usage](#usage)
   - [CLI Options](#cli-options)
-- [Feedforward for `fig8_akash`](#feedforward-for-fig8_akash)
+- [Feedforward for `fig8_contraction`](#feedforward-for-fig8_contraction)
 - [Dependencies](#dependencies)
 - [Package Structure](#package-structure)
 - [Installation](#installation)
@@ -104,9 +104,9 @@ ros2 run newton_raphson_px4 run_node --platform hw --trajectory helix --log
 # Hover mode 3, double speed, with yaw spin
 ros2 run newton_raphson_px4 run_node --platform sim --trajectory hover --hover-mode 3 --double-speed --spin
 
-# fig8_akash with feedforward, logged with _ff marker in filename
-ros2 run newton_raphson_px4 run_node --platform sim --trajectory fig8_akash --ff --log
-# -> logs to: sim_nr_std_fig8_akash_ff_1x.csv
+# fig8_contraction with feedforward, logged with _ff marker in filename
+ros2 run newton_raphson_px4 run_node --platform sim --trajectory fig8_contraction --ff --log
+# -> logs to: sim_nr_std_fig8_contraction_ff_1x.csv
 ```
 
 ### CLI Options
@@ -124,9 +124,9 @@ ros2 run newton_raphson_px4 run_node --platform sim --trajectory fig8_akash --ff
 | `--flight-period SEC`                           | Custom flight duration                                         |
 | `--ff`                                          | Enable feedforward and mark log filename with `_ff` (any trajectory) |
 
-## Feedforward for `fig8_akash`
+## Feedforward for `fig8_contraction`
 
-When the `fig8_akash` trajectory is selected, the node computes a differential-flatness feedforward at each control step using the same approach as the contraction controller (`flat_to_x_u` from `quad_trajectories`).
+When the `fig8_contraction` trajectory is selected, the node computes a differential-flatness feedforward at each control step via `flat_to_x_u` from `quad_trajectories`.
 
 **How it works:**
 
