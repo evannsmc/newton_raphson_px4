@@ -34,7 +34,6 @@ The NR Flow controller is an integral-based control strategy based on a continuo
 - [Control Parameters](#control-parameters)
 - [Usage](#usage)
   - [CLI Options](#cli-options)
-- [Feedforward for `fig8_contraction`](#feedforward-for-fig8_contraction)
 - [Dependencies](#dependencies)
 - [Package Structure](#package-structure)
 - [Installation](#installation)
@@ -124,19 +123,6 @@ ros2 run newton_raphson_px4 run_node --platform sim --trajectory fig8_contractio
 | `--spin`                                        | Enable yaw rotation                                            |
 | `--flight-period SEC`                           | Custom flight duration                                         |
 | `--ff`                                          | Enable feedforward and mark log filename with `_ff` (any trajectory) |
-
-## Feedforward for `fig8_contraction`
-
-When the `fig8_contraction` trajectory is selected, the node computes a differential-flatness feedforward at each control step via `flat_to_x_u` from `quad_trajectories`.
-
-**How it works:**
-
-1. The flat output `[px, py, pz, psi](t)` is differentiated twice via `jax.jacfwd` to recover velocity and acceleration.
-2. From acceleration, the feedforward specific thrust `f` and Euler angles `[phi, th, psi]` are computed analytically (flat-output inversion).
-3. A third differentiation gives `u_ff = [df, dphi, dth, dpsi]` — the rates of thrust, roll, pitch, and yaw.
-4. The angular rate feedforward `u_ff[1:4] = [dphi, dth, dpsi]` is **added directly to the NR control output** `[roll_rate, pitch_rate, yaw_rate]`, providing a baseline that the NR feedback corrects around rather than building up from zero.
-
-The thrust component `u_ff[0] = df` is not added to the NR thrust output (they live in different units: `df` is in m/s³, NR thrust is in N), so NR handles thrust authority through position tracking as normal.
 
 ## Dependencies
 
